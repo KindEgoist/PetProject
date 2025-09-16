@@ -1,0 +1,35 @@
+server:
+  port: 8888
+
+spring:
+  application:
+    name: api-gateway
+  
+  cloud:
+    gateway:
+      server:
+        webflux:
+          discovery:
+            locator:
+              enabled: true
+              lower-case-service-id: true
+          routes:
+            - id: store-app
+              uri: lb://store-app
+              predicates:
+                - Path=/store/**
+            - id: reserve-service
+              uri: lb://reserve-service
+              predicates:
+                - Path=/reserve/**
+            - id: payment-service
+              uri: lb://payment-service
+              predicates:
+                - Path=/payment/**
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka
+  instance:
+    prefer-ip-address: true
