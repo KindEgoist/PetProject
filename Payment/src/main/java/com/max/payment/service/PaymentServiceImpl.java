@@ -38,18 +38,23 @@ public class PaymentServiceImpl implements PaymentService {
         try {
             Account account = accountRepository.findById(request.getAccountId())
                     .orElseThrow(() -> {
-                        log.warn("Account не найден: accountId={}", request.getAccountId());
+
+                        log.error("Аккаунт не найден: accountId={}", request.getAccountId());
+
                         return new AccountNotFoundException(request.getAccountId());
                     });
 
             if (account.getBalance() < request.getAmount()) {
+
                 log.warn("Недостаточно средств на счете: accountId={}, balance={}, required={}",
                         request.getAccountId(), account.getBalance(), request.getAmount());
+
                 reserveServiceClient.cancelReserve(request);
                 return new ActionResponse(false, "Недостаточно средств");
             }
 
             account.setBalance(account.getBalance() - request.getAmount());
+
             log.debug("Cписание средств со счета: accountId={}, newBalance={}",
                     request.getAccountId(), account.getBalance());
 
@@ -58,8 +63,10 @@ public class PaymentServiceImpl implements PaymentService {
             ActionResponse commitResponse = reserveServiceClient.commitReserve(reserveRequest);
 
             if (commitResponse == null || !commitResponse.isSuccess()) {
+
                 log.warn("Не удалось подтвердить резерв на складе: productId={}, quantity={}",
                         request.getProductId(), request.getQuantity());
+
                 return new ActionResponse(false, "Не удалось подтвердить резерв на складе");
             }
             log.info("Оплата успешно обработана: accountId={}, amount={}",
@@ -68,8 +75,10 @@ public class PaymentServiceImpl implements PaymentService {
             return new ActionResponse(true, "Оплата прошла успешно");
         }
         catch (Exception e) {
+
             log.error("Ошибка при обработке платежа: accountId={}, error={}",
                     request.getAccountId(), e.getMessage(), e);
+
             throw e;
         } finally {
             MDC.clear();

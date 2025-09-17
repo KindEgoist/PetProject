@@ -2,14 +2,14 @@
 <configuration>
     <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
 
-    <!-- Читаемый вывод в консоль -->
+
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
             <pattern>%d{yyyy-MM-dd HH:mm:ss} %-5level [%thread] %logger{36} - %msg%n</pattern>
         </encoder>
     </appender>
 
-    <!-- JSON для файлов -->
+
     <appender name="ELASTIC" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>logs/payment-service.json</file>
         <encoder class="net.logstash.logback.encoder.LogstashEncoder">
@@ -22,7 +22,7 @@
     </appender>
 
     <root level="INFO">
-        <appender-ref ref="STDOUT"/>   <!-- красиво читаемый лог -->
-        <appender-ref ref="ELASTIC"/>  <!-- json -->
+        <appender-ref ref="STDOUT"/>
+        <appender-ref ref="ELASTIC"/>
     </root>
 </configuration>

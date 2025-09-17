@@ -23,19 +23,20 @@ public class PaymentController {
     @PostMapping("/pay")
     public ResponseEntity<ActionResponse> processPayment(@RequestBody PaymentRequest request) {
 
-            log.info("Запрос на оплату: accountId={}, amount={}",
-                    request.getAccountId(), request.getAmount());
+        log.info("Запрос на оплату: accountId={}, amount={}", request.getAccountId(), request.getAmount());
 
         try {
             ActionResponse response = paymentService.processPayment(request);
-            log.info("Ответ на запрос оплаты: success={}, message={}",
-                    response.isSuccess(), response.getMessage());
+
+            log.info("Ответ на запрос оплаты: success={}, message={}", response.isSuccess(), response.getMessage());
+
             return ResponseEntity.ok(response);
         }
         catch (AccountNotFoundException e){
-            log.warn("Account не найден: accountId={}", request.getAccountId());
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(new ActionResponse(false, e.getMessage()));
+
+            log.error("Аккаунт не найден: accountId={}", request.getAccountId());
+
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ActionResponse(false, e.getMessage()));
         }
 
     }
