@@ -14,7 +14,6 @@ import org.springframework.web.bind.annotation.RequestBody;
         fallback = PaymentServiceFallback.class
 )
 
-//@FeignClient(name = "payment-service", path = "/payment")
 public interface PaymentServiceClient {
 
     @PostMapping("/pay")

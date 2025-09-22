@@ -7,6 +7,7 @@ import com.max.payment.dto.ReserveRequest;
 import com.max.payment.exception.AccountNotFoundException;
 import com.max.payment.model.Account;
 import com.max.payment.repository.AccountRepository;
+import feign.FeignException;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
@@ -53,22 +54,28 @@ public class PaymentServiceImpl implements PaymentService {
                 return new ActionResponse(false, "Недостаточно средств");
             }
 
-            account.setBalance(account.getBalance() - request.getAmount());
-
-            log.debug("Cписание средств со счета: accountId={}, newBalance={}",
-                    request.getAccountId(), account.getBalance());
+            //account.setBalance(account.getBalance() - request.getAmount());
 
             ReserveRequest reserveRequest = new ReserveRequest(request.getProductId(), request.getQuantity());
 
-            ActionResponse commitResponse = reserveServiceClient.commitReserve(reserveRequest);
+            ActionResponse commitResponse;
 
-            if (commitResponse == null || !commitResponse.isSuccess()) {
+            try {
 
-                log.warn("Не удалось подтвердить резерв на складе: productId={}, quantity={}",
-                        request.getProductId(), request.getQuantity());
+                commitResponse = reserveServiceClient.commitReserve(reserveRequest);
+                if (commitResponse == null || !commitResponse.isSuccess()) {
 
-                return new ActionResponse(false, "Не удалось подтвердить резерв на складе");
+                    log.warn("Не удалось подтвердить резерв на складе: productId={}, quantity={}",
+                            request.getProductId(), request.getQuantity());
+
+                    return new ActionResponse(false, "Не удалось подтвердить резерв на складе");
+                }
+            } catch (FeignException e) {
+                return new ActionResponse(false, "Ошибка сервиса Резерв: " + e.contentUTF8());
             }
+
+            account.setBalance(account.getBalance() - request.getAmount());
+
             log.info("Оплата успешно обработана: accountId={}, amount={}",
                     request.getAccountId(), request.getAmount());
 

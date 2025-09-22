@@ -32,7 +32,7 @@ public class ReserveController {
             if (reserved) {
                 Product product = reserveService.getProduct(request.getProductId());
 
-                log.info("Продукт зарезервирован: productId={}, quantity={}, price={}",
+                log.info("Продукт зарезервирован(res): productId={}, quantity={}, price={}",
                         request.getProductId(), request.getQuantity(), product.getPrice());
 
                 return ResponseEntity.ok(new ReserveResponse(true, "Продукт зарезервирован", product.getPrice()));
@@ -53,10 +53,10 @@ public class ReserveController {
     }
 
     @PostMapping("/commit")
-    public ResponseEntity<ActionResponse> commitReserve(@RequestBody ProductActionRequest request) {
-
-        log.info("Запрос на подтверждение резерва: productId={}, quantity={}",
-                request.getProductId(), request.getQuantity());
+    public ResponseEntity<ActionResponse> commitReserve(@RequestBody ProductActionRequest request,
+                                                        @RequestHeader(value="X-Correlation-Id", required=false) String correlationId) {
+        log.info("Запрос на подтверждение резерва (commit): productId={}, quantity={}, correlationId={}",
+                request.getProductId(), request.getQuantity(), correlationId);
 
         try {
             boolean committed = reserveService.commitReserve(request.getProductId(), request.getQuantity());
@@ -64,7 +64,7 @@ public class ReserveController {
 
             if (committed) {
 
-                log.info("Резерв подтверждён: productId={}, quantity={}",
+                log.info("Продажа из резерва подтверждена: productId={}, quantity={}",
                         request.getProductId(), request.getQuantity());
             } else {
 
@@ -85,7 +85,7 @@ public class ReserveController {
     @PostMapping("/cancel")
     public ResponseEntity<ActionResponse> cancelReserve(@RequestBody ProductActionRequest request) {
 
-        log.info("Запрос на отмену резерва: productId={}, quantity={}",
+        log.info("Запрос на отмену резерва(cancel): productId={}, quantity={}",
                 request.getProductId(), request.getQuantity());
 
         try {

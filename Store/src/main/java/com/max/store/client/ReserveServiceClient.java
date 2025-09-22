@@ -15,7 +15,6 @@ import org.springframework.web.bind.annotation.RequestBody;
         fallback = ReserveServiceFallback.class
 )
 
-//@FeignClient(name = "reserve-service", path = "/reserve")
 public interface ReserveServiceClient {
 
     @PostMapping("/res")
