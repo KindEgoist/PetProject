@@ -3,6 +3,7 @@ package com.max.reserve.service;
 import com.max.reserve.exception.ProductNotFoundException;
 import com.max.reserve.model.Product;
 import com.max.reserve.repository.ProductRepository;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
@@ -12,13 +13,11 @@ import java.util.UUID;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class ReserveServiceImpl implements ReserveService {
 
     private final ProductRepository productRepository;
 
-    public ReserveServiceImpl(ProductRepository productRepository) {
-        this.productRepository = productRepository;
-    }
 
     public Product getProduct(Long id) {
 

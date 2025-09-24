@@ -6,6 +6,7 @@ import com.max.reserve.dto.ReserveResponse;
 import com.max.reserve.exception.ProductNotFoundException;
 import com.max.reserve.model.Product;
 import com.max.reserve.service.ReserveService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,13 +15,10 @@ import org.springframework.web.bind.annotation.*;
 @Slf4j
 @RestController
 @RequestMapping("/reserve")
+@RequiredArgsConstructor
 public class ReserveController {
 
     private final ReserveService reserveService;
-
-    public ReserveController(ReserveService reserveService) {
-        this.reserveService = reserveService;
-    }
 
     @PostMapping("/res")
     public ResponseEntity<ReserveResponse> reserveProduct(@RequestBody ProductActionRequest request) {
@@ -53,10 +51,9 @@ public class ReserveController {
     }
 
     @PostMapping("/commit")
-    public ResponseEntity<ActionResponse> commitReserve(@RequestBody ProductActionRequest request,
-                                                        @RequestHeader(value="X-Correlation-Id", required=false) String correlationId) {
+    public ResponseEntity<ActionResponse> commitReserve(@RequestBody ProductActionRequest request) {
         log.info("Запрос на подтверждение резерва (commit): productId={}, quantity={}, correlationId={}",
-                request.getProductId(), request.getQuantity(), correlationId);
+                request.getProductId(), request.getQuantity());
 
         try {
             boolean committed = reserveService.commitReserve(request.getProductId(), request.getQuantity());

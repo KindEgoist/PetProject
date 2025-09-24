@@ -4,6 +4,7 @@ import com.max.store.client.PaymentServiceClient;
 import com.max.store.client.ReserveServiceClient;
 import com.max.store.dto.*;
 import feign.FeignException;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
@@ -11,17 +12,12 @@ import org.springframework.stereotype.Service;
 import java.util.UUID;
 
 @Slf4j
+@RequiredArgsConstructor
 @Service
 public class PurchaseServiceImpl implements PurchaseService {
 
     private final ReserveServiceClient reserveServiceClient;
     private final PaymentServiceClient paymentServiceClient;
-
-    public PurchaseServiceImpl(ReserveServiceClient reserveServiceClient,
-                               PaymentServiceClient paymentServiceClient) {
-        this.reserveServiceClient = reserveServiceClient;
-        this.paymentServiceClient = paymentServiceClient;
-    }
 
     @Override
     public PurchaseResponse processPurchase(PurchaseRequest request) {
@@ -53,7 +49,12 @@ public class PurchaseServiceImpl implements PurchaseService {
                             "Ошибка резервирования: " + reserveResponse.getMessage());
                 }
             }catch (FeignException e) {
-                return new PurchaseResponse(false, "Ошибка сервиса Резерва: " + e.getMessage());
+                log.error("Ошибка связи с сервисом резервирования. Status: {}, Message: {}",
+                        e.status(), e.contentUTF8());
+                String userMessage = e.status() == 503 ?
+                        "Сервис резервирования временно недоступен" :
+                        "Ошибка при резервировании товара";
+                return new PurchaseResponse(false, userMessage);
             }
 
 
@@ -79,7 +80,13 @@ public class PurchaseServiceImpl implements PurchaseService {
                             (paymentResponse != null ? paymentResponse.getMessage() : "Нет ответа"));
                 }
             }catch (FeignException e) {
-                return new PurchaseResponse(false, "Ошибка сервиса Оплаты: " + e.getMessage());
+                log.error("Ошибка связи с сервисом оплаты. Status: {}, Message: {}",
+                        e.status(), e.contentUTF8());
+
+                String userMessage = e.status() == 503 ?
+                        "Сервис оплаты временно недоступен" :
+                        "Ошибка при обработке оплаты";
+                return new PurchaseResponse(false, userMessage);
             }
 
           log.info("Покупка успешно завершена");

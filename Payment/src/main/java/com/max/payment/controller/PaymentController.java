@@ -4,6 +4,7 @@ import com.max.payment.dto.ActionResponse;
 import com.max.payment.dto.PaymentRequest;
 import com.max.payment.exception.AccountNotFoundException;
 import com.max.payment.service.PaymentService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -12,13 +13,10 @@ import org.springframework.web.bind.annotation.*;
 @Slf4j
 @RestController
 @RequestMapping("/payment")
+@RequiredArgsConstructor
 public class PaymentController {
 
     private final PaymentService paymentService;
-
-    public PaymentController(PaymentService paymentService) {
-        this.paymentService = paymentService;
-    }
 
     @PostMapping("/pay")
     public ResponseEntity<ActionResponse> processPayment(@RequestBody PaymentRequest request) {

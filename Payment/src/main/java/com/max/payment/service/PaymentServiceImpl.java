@@ -8,6 +8,7 @@ import com.max.payment.exception.AccountNotFoundException;
 import com.max.payment.model.Account;
 import com.max.payment.repository.AccountRepository;
 import feign.FeignException;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
@@ -17,16 +18,11 @@ import java.util.UUID;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class PaymentServiceImpl implements PaymentService {
 
     private final AccountRepository accountRepository;
     private final ReserveServiceClient reserveServiceClient;
-
-    public PaymentServiceImpl(AccountRepository accountRepository,
-                              ReserveServiceClient reserveServiceClient) {
-        this.accountRepository = accountRepository;
-        this.reserveServiceClient = reserveServiceClient;
-    }
 
     @Override
     @Transactional
@@ -54,8 +50,6 @@ public class PaymentServiceImpl implements PaymentService {
                 return new ActionResponse(false, "Недостаточно средств");
             }
 
-            //account.setBalance(account.getBalance() - request.getAmount());
-
             ReserveRequest reserveRequest = new ReserveRequest(request.getProductId(), request.getQuantity());
 
             ActionResponse commitResponse;
@@ -71,7 +65,9 @@ public class PaymentServiceImpl implements PaymentService {
                     return new ActionResponse(false, "Не удалось подтвердить резерв на складе");
                 }
             } catch (FeignException e) {
-                return new ActionResponse(false, "Ошибка сервиса Резерв: " + e.contentUTF8());
+                log.error("Ошибка связи с сервисом резервирования. Status: {}, Message: {}",
+                        e.status(), e.contentUTF8());
+                return new ActionResponse(false, "Сервис резервирования временно недоступен" );
             }
 
             account.setBalance(account.getBalance() - request.getAmount());
