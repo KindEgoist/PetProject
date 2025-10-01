@@ -18,15 +18,6 @@ spring:
               uri: lb://store-app
               predicates:
                 - Path=/store/**
-            - id: reserve-service
-              uri: lb://reserve-service
-              predicates:
-                - Path=/reserve/**
-            - id: payment-service
-              uri: lb://payment-service
-              predicates:
-                - Path=/payment/**
-
 eureka:
   client:
     register-with-eureka: true

@@ -15,12 +15,14 @@ public class Product {
     private Long id;
 
     @Column(name = "name")
-    private String name; //название продукта
+    private String name;
     @Column(name = "available")
-    private int available; // количество
+    private int available;
     @Column(name = "price")
-    private int price; //цена на штуку
+    private int price;
     @Column(name = "reserved")
-    private int reserved; // резерв
+    private int reserved;
+    @Version
+    private long version;
 
 }

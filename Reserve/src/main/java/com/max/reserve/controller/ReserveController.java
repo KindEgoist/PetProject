@@ -5,6 +5,7 @@ import com.max.reserve.dto.ProductActionRequest;
 import com.max.reserve.dto.ReserveResponse;
 import com.max.reserve.exception.ProductNotFoundException;
 import com.max.reserve.model.Product;
+import com.max.reserve.model.ProductService;
 import com.max.reserve.service.ReserveService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 public class ReserveController {
 
     private final ReserveService reserveService;
+    private final ProductService productService;
 
     @PostMapping("/res")
     public ResponseEntity<ReserveResponse> reserveProduct(@RequestBody ProductActionRequest request) {
@@ -28,7 +30,7 @@ public class ReserveController {
         try {
             boolean reserved = reserveService.reserve(request.getProductId(), request.getQuantity());
             if (reserved) {
-                Product product = reserveService.getProduct(request.getProductId());
+                Product product = productService.getProduct(request.getProductId());
 
                 log.info("Продукт зарезервирован(res): productId={}, quantity={}, price={}",
                         request.getProductId(), request.getQuantity(), product.getPrice());
