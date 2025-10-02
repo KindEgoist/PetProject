@@ -28,6 +28,7 @@ public class ReserveRetryServiceImpl implements ReserveRetryService {
                 product.setReserved(product.getReserved() + quantity);
                 product.setAvailable(product.getAvailable() - quantity);
                 productService.saveProduct(product);
+                productService.evictProductCache(productId);
 
                 log.info("Товар зарезервирован: productId={} quantity={} reserved={} available={}",
                         productId, quantity, product.getReserved(), product.getAvailable());
