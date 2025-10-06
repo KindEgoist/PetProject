@@ -1,4 +1,4 @@
-package com.max.reserve.configuration;
+package com.max.productInfo.configuration;
 
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
@@ -19,7 +19,7 @@ public class RedisConfig {
         return RedisCacheConfiguration.defaultCacheConfig()
                 .entryTtl(Duration.ofMinutes(5))
                 .disableCachingNullValues()
-                .computePrefixWith(cacheName -> "reserve:" + cacheName + "::")
+                .computePrefixWith(cacheName -> "productInfo:" + cacheName + "::")
                 .serializeKeysWith(RedisSerializationContext.SerializationPair
                         .fromSerializer(new StringRedisSerializer()))
                 .serializeValuesWith(RedisSerializationContext.SerializationPair

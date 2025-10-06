@@ -17,6 +17,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 public interface PaymentServiceClient {
 
     @PostMapping("/pay")
-    ActionResponse pay(@RequestBody PaymentRequest request);
+    ActionResponse processPayment(@RequestBody PaymentRequest request);
 }
 

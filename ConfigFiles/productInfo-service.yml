@@ -1,0 +1,55 @@
+server:
+  port: 8083
+
+spring:
+  application:
+    name: productInfo-service
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/petDB
+    username: bestuser
+    password: bestuser
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+  cache:
+    type: redis
+    redis:
+      time-to-live: 300000
+      cache-null-values: false
+      key-prefix: "productInfo:"
+      use-key-prefix: true
+  redis:
+    host: localhost
+    port: 6379
+    database: 0
+    timeout: 2000ms
+    lettuce:
+      pool:
+        max-active: 8
+        max-idle: 8
+        min-idle: 2
+
+eureka:
+  client:
+    register-with-eureka: true
+    fetch-registry: true
+    service-url:
+      defaultZone: http://localhost:8761/eureka
+  instance:
+    prefer-ip-address: true
+
+logging:
+  level:
+    com.max.productInfo: DEBUG
+    org.springframework.web: INFO
+    org.springframework.data.redis: DEBUG
+  file:

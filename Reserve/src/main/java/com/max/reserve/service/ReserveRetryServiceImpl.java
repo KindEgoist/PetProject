@@ -18,7 +18,7 @@ public class ReserveRetryServiceImpl implements ReserveRetryService {
 
     @Override
     @Retryable(value = ObjectOptimisticLockingFailureException.class, maxAttempts = 3,
-                backoff = @Backoff(delay = 200, multiplier = 2))
+            backoff = @Backoff(delay = 200, multiplier = 2))
     public boolean reserveWithRetry(Long productId, int quantity) {
         try {
             Product product = productService.getProduct(productId);
@@ -28,7 +28,6 @@ public class ReserveRetryServiceImpl implements ReserveRetryService {
                 product.setReserved(product.getReserved() + quantity);
                 product.setAvailable(product.getAvailable() - quantity);
                 productService.saveProduct(product);
-                productService.evictProductCache(productId);
 
                 log.info("Товар зарезервирован: productId={} quantity={} reserved={} available={}",
                         productId, quantity, product.getReserved(), product.getAvailable());

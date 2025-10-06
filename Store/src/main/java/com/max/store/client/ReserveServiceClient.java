@@ -18,12 +18,12 @@ import org.springframework.web.bind.annotation.RequestBody;
 public interface ReserveServiceClient {
 
     @PostMapping("/res")
-    ReserveResponse reserve(@RequestBody ReserveRequest request);
+    ReserveResponse reserveProduct(@RequestBody ReserveRequest request);
 
     @PostMapping("/cancel")
-    void cancel(@RequestBody ReserveRequest request);
+    void cancelReserve(@RequestBody ReserveRequest request);
 
     @PostMapping("/commit")
-    ActionResponse commit(@RequestBody ReserveRequest request);
+    ActionResponse commitReserve(@RequestBody ReserveRequest request);
 }
 

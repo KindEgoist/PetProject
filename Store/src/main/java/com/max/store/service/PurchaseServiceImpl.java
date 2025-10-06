@@ -1,6 +1,7 @@
 package com.max.store.service;
 
 import com.max.store.client.PaymentServiceClient;
+import com.max.store.client.ProductInfoServiceClient;
 import com.max.store.client.ReserveServiceClient;
 import com.max.store.dto.*;
 import feign.FeignException;
@@ -18,6 +19,47 @@ public class PurchaseServiceImpl implements PurchaseService {
 
     private final ReserveServiceClient reserveServiceClient;
     private final PaymentServiceClient paymentServiceClient;
+    private final ProductInfoServiceClient productInfoServiceClient;
+
+    public ProductResponse getProductById(Long productId) {
+
+        MDC.put("correlationId", UUID.randomUUID().toString());
+        log.info("Начало процесса получение информации о продукте: productId={}", productId);
+
+        ProductResponse productInfoResponse;
+        try {
+            productInfoResponse = productInfoServiceClient.getProductById(productId);
+
+            if (productInfoResponse == null) {
+
+                log.warn("Сервис информации о продукте недоступен");
+
+                return new ProductResponse("Сервис информации о продукте недоступен", null);
+            }
+
+            if (productInfoResponse.getProductInfo() == null) {
+
+                log.warn("Не удалось получить информацию о продукте: {}", productInfoResponse.getMessage());
+
+                return new ProductResponse("Сервис информации о продукте недоступен", null);
+            }
+
+            log.info("Информация о продукте успешно получена");
+            return new ProductResponse("Информация о продукте успешно получена",
+                    productInfoResponse.getProductInfo());
+        }catch (FeignException e) {
+            log.error("Ошибка связи с сервисом информации о продукте. Status: {}, Message: {}",
+                    e.status(), e.contentUTF8());
+            String userMessage = e.status() == 503 ?
+                    "Сервис информации о продукте временно недоступен" :
+                    "Ошибка при получении информации о продукте";
+            return new ProductResponse(userMessage, null);
+        } finally {
+            MDC.clear();
+        }
+
+
+    }
 
     @Override
     public PurchaseResponse processPurchase(PurchaseRequest request) {
@@ -32,7 +74,7 @@ public class PurchaseServiceImpl implements PurchaseService {
 
             ReserveResponse reserveResponse;
             try {
-                reserveResponse = reserveServiceClient.reserve(reserveRequest);
+                reserveResponse = reserveServiceClient.reserveProduct(reserveRequest);
 
                 if (reserveResponse == null) {
 
@@ -69,9 +111,9 @@ public class PurchaseServiceImpl implements PurchaseService {
             ActionResponse paymentResponse;
 
             try {
-                paymentResponse = paymentServiceClient.pay(paymentRequest);
+                paymentResponse = paymentServiceClient.processPayment(paymentRequest);
                 if (paymentResponse == null || !paymentResponse.isSuccess()) {
-                    reserveServiceClient.cancel(reserveRequest);
+                    reserveServiceClient.cancelReserve(reserveRequest);
 
                     log.warn("Оплата не удалась: {}",
                             paymentResponse != null ? paymentResponse.getMessage() : "Нет ответа");
