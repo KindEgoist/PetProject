@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class ProductInfoController {
     private final ProductInfoService productInfoService;
 
-    @GetMapping("/status/{productId}")
+    @GetMapping("/{productId}")
     ResponseEntity<ProductInfoResponse> getProductInfoById(@PathVariable Long productId) {
         log.info("Запрос информации о продукте: productId={}", productId);
         try {
