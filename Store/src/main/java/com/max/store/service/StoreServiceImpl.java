@@ -4,6 +4,9 @@ import com.max.store.client.PaymentServiceClient;
 import com.max.store.client.ProductInfoServiceClient;
 import com.max.store.client.ReserveServiceClient;
 import com.max.store.dto.*;
+import com.max.store.event.PurchaseEvent;
+import com.max.store.event.Status;
+import com.max.store.kafka.PurchaseEventProducer;
 import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,11 +18,12 @@ import java.util.UUID;
 @Slf4j
 @RequiredArgsConstructor
 @Service
-public class PurchaseServiceImpl implements PurchaseService {
+public class StoreServiceImpl implements StoreService {
 
     private final ReserveServiceClient reserveServiceClient;
     private final PaymentServiceClient paymentServiceClient;
     private final ProductInfoServiceClient productInfoServiceClient;
+    private final PurchaseEventProducer purchaseEventProducer;
 
     public ProductResponse getProductById(Long productId) {
 
@@ -90,6 +94,21 @@ public class PurchaseServiceImpl implements PurchaseService {
                     return new PurchaseResponse(false,
                             "Ошибка резервирования: " + reserveResponse.getMessage());
                 }
+
+                if (reserveResponse.isSuccess()) {
+                    PurchaseEvent event = new PurchaseEvent(
+                            request.getProductId(),
+                            request.getAccountId(),
+                            request.getQuantity(),
+                            Status.ЗАПРОС
+                    );
+
+                    purchaseEventProducer.sendPurchaseEvent(event);
+                    log.info("Событие покупки отправлено в Kafka: {}", event);
+                }
+
+
+
             }catch (FeignException e) {
                 log.error("Ошибка связи с сервисом резервирования. Status: {}, Message: {}",
                         e.status(), e.contentUTF8());
