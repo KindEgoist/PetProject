@@ -1,4 +1,5 @@
 services:
+
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:9.1.4
     environment:
@@ -53,10 +54,68 @@ services:
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
       KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
-      KAFKA_LOG_DIRS: /tmp/kraft-combined-logs
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
       CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+    volumes:
+      - kafka_data:/var/lib/kafka/data  
+    healthcheck:
+      test: ["CMD", "kafka-topics", "--bootstrap-server", "localhost:9092", "--list"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+
+  config-server:
+    image: config-server:latest
+    container_name: config-server
+    build:
+      context: ./ConfigServer   
+    ports:
+      - "8889:8889"
+    environment:
+      SPRING_PROFILES_ACTIVE: native
+      SPRING_CLOUD_CONFIG_SERVER_NATIVE_SEARCH_LOCATIONS: file:/config-repo
+    volumes:
+      - ./ConfigFiles:/config-repo
+    networks:
+      - pet-net
+
+  eureka-server:
+    image: eureka-server:latest
+    container_name: eureka-server
+    build:
+      context: ./EurekaServer
+    ports:
+      - "8761:8761"
+    depends_on:
+      - config-server
+    networks:
+      - pet-net
+
+  api-gateway:
+    image: api-gateway:latest
+    container_name: api-gateway
+    build:
+      context: ./Gateway
+    ports:
+      - "8888:8888"
+    depends_on:
+      - eureka-server
+      - config-server
+    environment:
+      SPRING_CONFIG_IMPORT: configserver:http://config-server:8889
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka
+    networks:
+      - pet-net
 
 
 volumes:
   redis-data:
+  kafka_data:
   elasticsearch_data:
+
+networks:
+  pet-net:
+    driver: bridge

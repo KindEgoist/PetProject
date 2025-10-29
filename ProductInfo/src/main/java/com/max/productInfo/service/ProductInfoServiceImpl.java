@@ -24,12 +24,16 @@ public class ProductInfoServiceImpl implements ProductInfoService {
     public ProductInfo getProductById(Long productId) {
 
         MDC.put("traceId", UUID.randomUUID().toString());
-        log.info("Запрос информации о продукте: productId={}", productId);
+        try {
+            log.info("Запрос информации о продукте: productId={}", productId);
 
-        ProductInfo productInfo = productRepositoryService.getProductById(productId);
+            ProductInfo productInfo = productRepositoryService.getProductById(productId);
 
-        log.info("Информация о продукте получена: productId={}", productId);
-        MDC.clear();
-        return productInfo;
+            log.info("Информация о продукте получена: productId={}", productId);
+            return productInfo;
+        }
+        finally {
+            MDC.clear();
+        }
     }
 }

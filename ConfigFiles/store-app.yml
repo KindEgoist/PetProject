@@ -2,19 +2,28 @@ server:
   port: 8080
 
 spring:
+
   application:
     name: store-app
+
   kafka:
     bootstrap-servers: localhost:9092
+
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.type.mapping: >
+          productInfoRequestEvent:com.max.store.event.ProductInfoRequestEvent
+
     consumer:
       group-id: store-group
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       properties:
         spring.json.trusted.packages: "*"
+        spring.json.type.mapping: >
+          productInfoResponseEvent:com.max.store.event.ProductInfoResponseEvent
 
 eureka:
   client:
@@ -29,4 +38,4 @@ logging:
   level:
     com.max.store: DEBUG
     org.springframework.web: INFO
-  file:
+    org.springframework.kafka: DEBUG

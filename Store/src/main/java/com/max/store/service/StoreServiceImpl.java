@@ -1,12 +1,12 @@
 package com.max.store.service;
 
 import com.max.store.client.PaymentServiceClient;
-import com.max.store.client.ProductInfoServiceClient;
 import com.max.store.client.ReserveServiceClient;
 import com.max.store.dto.*;
-import com.max.store.event.PurchaseEvent;
-import com.max.store.event.Status;
-import com.max.store.kafka.PurchaseEventProducer;
+import com.max.store.event.ProductInfoRequestEvent;
+import com.max.store.event.ProductInfoResponseEvent;
+import com.max.store.kafka.ProductInfoProducer;
+import com.max.store.kafka.ProductInfoResponseStorage;
 import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -14,6 +14,10 @@ import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
 
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -22,47 +26,42 @@ public class StoreServiceImpl implements StoreService {
 
     private final ReserveServiceClient reserveServiceClient;
     private final PaymentServiceClient paymentServiceClient;
-    private final ProductInfoServiceClient productInfoServiceClient;
-    private final PurchaseEventProducer purchaseEventProducer;
+    private final ProductInfoProducer productInfoProducer;
+    private final ProductInfoResponseStorage productInfoResponseStorage;
 
     public ProductResponse getProductById(Long productId) {
+        String correlationId = UUID.randomUUID().toString();
+        MDC.put("correlationId", correlationId);
+        log.info("Начало процесса получения информации о продукте: productId={}", productId);
 
-        MDC.put("correlationId", UUID.randomUUID().toString());
-        log.info("Начало процесса получение информации о продукте: productId={}", productId);
-
-        ProductResponse productInfoResponse;
         try {
-            productInfoResponse = productInfoServiceClient.getProductById(productId);
+            // Создаем асинхронное ожидание
+            CompletableFuture<ProductInfoResponseEvent> future =
+                    productInfoResponseStorage.createPendingRequest(correlationId);
 
-            if (productInfoResponse == null) {
+            // Отправляем запрос
+            ProductInfoRequestEvent requestEvent = new ProductInfoRequestEvent(productId, correlationId);
+            productInfoProducer.sendRequest(requestEvent);
 
-                log.warn("Сервис информации о продукте недоступен");
+            // Ждем результат асинхронно
+            ProductInfoResponseEvent responseEvent = future.get(5, TimeUnit.SECONDS);
 
-                return new ProductResponse("Сервис информации о продукте недоступен", null);
-            }
+            log.info("Ответ получен: {}", responseEvent.getProductInfo());
+            return new ProductResponse(responseEvent.getMessage(), responseEvent.getProductInfo());
 
-            if (productInfoResponse.getProductInfo() == null) {
-
-                log.warn("Не удалось получить информацию о продукте: {}", productInfoResponse.getMessage());
-
-                return new ProductResponse("Сервис информации о продукте недоступен", null);
-            }
-
-            log.info("Информация о продукте успешно получена");
-            return new ProductResponse("Информация о продукте успешно получена",
-                    productInfoResponse.getProductInfo());
-        }catch (FeignException e) {
-            log.error("Ошибка связи с сервисом информации о продукте. Status: {}, Message: {}",
-                    e.status(), e.contentUTF8());
-            String userMessage = e.status() == 503 ?
-                    "Сервис информации о продукте временно недоступен" :
-                    "Ошибка при получении информации о продукте";
-            return new ProductResponse(userMessage, null);
+        } catch (TimeoutException e) {
+            log.error("Таймаут при ожидании ответа от ProductInfo");
+            return new ProductResponse("Ответ от ProductInfo не получен (timeout)", null);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.error("Ожидание прервано", e);
+            return new ProductResponse("Ошибка при ожидании ответа", null);
+        } catch (ExecutionException e) {
+            log.error("Ошибка при получении ответа", e);
+            return new ProductResponse("Ошибка при получении ответа", null);
         } finally {
             MDC.clear();
         }
-
-
     }
 
     @Override
@@ -94,20 +93,6 @@ public class StoreServiceImpl implements StoreService {
                     return new PurchaseResponse(false,
                             "Ошибка резервирования: " + reserveResponse.getMessage());
                 }
-
-                if (reserveResponse.isSuccess()) {
-                    PurchaseEvent event = new PurchaseEvent(
-                            request.getProductId(),
-                            request.getAccountId(),
-                            request.getQuantity(),
-                            Status.ЗАПРОС
-                    );
-
-                    purchaseEventProducer.sendPurchaseEvent(event);
-                    log.info("Событие покупки отправлено в Kafka: {}", event);
-                }
-
-
 
             }catch (FeignException e) {
                 log.error("Ошибка связи с сервисом резервирования. Status: {}, Message: {}",

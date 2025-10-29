@@ -2,6 +2,7 @@ server:
   port: 8083
 
 spring:
+
   application:
     name: productInfo-service
 
@@ -28,6 +29,7 @@ spring:
       cache-null-values: false
       key-prefix: "productInfo:"
       use-key-prefix: true
+
   redis:
     host: localhost
     port: 6379
@@ -38,6 +40,25 @@ spring:
         max-active: 8
         max-idle: 8
         min-idle: 2
+
+  kafka:
+    bootstrap-servers: localhost:9092
+
+    consumer:
+      group-id: product-info-group
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+        spring.json.type.mapping: >
+          productInfoRequestEvent:com.max.productInfo.event.ProductInfoRequestEvent
+
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.type.mapping: >
+          productInfoResponseEvent:com.max.productInfo.event.ProductInfoResponseEvent
 
 eureka:
   client:
@@ -53,4 +74,4 @@ logging:
     com.max.productInfo: DEBUG
     org.springframework.web: INFO
     org.springframework.data.redis: DEBUG
-  file:
+    org.springframework.kafka: DEBUG
