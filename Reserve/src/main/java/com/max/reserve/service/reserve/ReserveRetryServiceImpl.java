@@ -1,7 +1,7 @@
-package com.max.reserve.service;
+package com.max.reserve.service.reserve;
 
 import com.max.reserve.model.Product;
-import com.max.reserve.model.ProductService;
+import com.max.reserve.service.product.ProductService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;

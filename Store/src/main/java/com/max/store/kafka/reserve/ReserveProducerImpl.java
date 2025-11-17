@@ -1,8 +1,9 @@
-package com.max.store.kafka;
+package com.max.store.kafka.reserve;
 
 
 
-import com.max.store.event.ProductInfoRequestEvent;
+import com.max.store.event.productInfo.ProductInfoRequestEvent;
+import com.max.store.event.reserve.ReserveRequestEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -18,16 +19,16 @@ import java.util.concurrent.TimeoutException;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class ProductInfoProducerImpl implements ProductInfoProducer {
+public class ReserveProducerImpl implements ReserveProducer {
 
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
-    public void sendRequest(ProductInfoRequestEvent event) {
+    public void sendRequest(ReserveRequestEvent event) {
         log.info("Отправка в Kafka: {}", event);
 
         try {
             CompletableFuture<SendResult<String, Object>> future =
-                    kafkaTemplate.send("product-info-requests", event).toCompletableFuture();
+                    kafkaTemplate.send("reserve-requests", event).toCompletableFuture();
 
             SendResult<String, Object> result = future.get(5, TimeUnit.SECONDS);
 

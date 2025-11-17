@@ -4,14 +4,29 @@ server:
 spring:
   application:
     name: reserve-service
+
   kafka:
     bootstrap-servers: localhost:9092
+
     consumer:
-      group-id: reserve-group
+      group-id: store-reserve-group
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       properties:
         spring.json.trusted.packages: "*"
+        spring.json.type.mapping: >
+          reserveRequestEvent:com.max.reserve.event.reserve.ReserveRequestEvent
+
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.type.mapping: >
+          reserveResponseEvent:com.max.reserve.event.reserve.ReserveResponseEvent
+        enable.idempotence: true
+        acks: all
+        retries: 3
+        max.in.flight.requests.per.connection: 1
 
   datasource:
     url: jdbc:postgresql://localhost:5432/petDB
@@ -28,24 +43,6 @@ spring:
       hibernate:
         format_sql: true
 
-  cache:
-    type: redis
-    redis:
-      time-to-live: 300000    
-      cache-null-values: false 
-      key-prefix: "reserve:"   
-      use-key-prefix: true   
-  redis:
-    host: localhost
-    port: 6379
-    database: 0               
-    timeout: 2000ms           
-    lettuce:
-      pool:
-        max-active: 8         
-        max-idle: 8           
-        min-idle: 2 
-
 eureka:
   client:
     register-with-eureka: true
@@ -59,5 +56,4 @@ logging:
   level:
     com.max.reserve: DEBUG
     org.springframework.web: INFO
-    org.springframework.data.redis: DEBUG
   file:

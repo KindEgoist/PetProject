@@ -14,16 +14,21 @@ spring:
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
       properties:
         spring.json.type.mapping: >
-          productInfoRequestEvent:com.max.store.event.ProductInfoRequestEvent
+          productInfoRequestEvent:com.max.store.event.productInfo.ProductInfoRequestEvent,
+          reserveRequestEvent:com.max.store.event.reserve.ReserveRequestEvent
+        enable.idempotence: true
+        acks: all
+        retries: 3
+        max.in.flight.requests.per.connection: 1
 
     consumer:
-      group-id: store-group
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       properties:
         spring.json.trusted.packages: "*"
         spring.json.type.mapping: >
-          productInfoResponseEvent:com.max.store.event.ProductInfoResponseEvent
+          productInfoResponseEvent:com.max.store.event.productInfo.ProductInfoResponseEvent,
+          reserveResponseEvent:com.max.store.event.reserve.ReserveResponseEvent
 
 eureka:
   client:

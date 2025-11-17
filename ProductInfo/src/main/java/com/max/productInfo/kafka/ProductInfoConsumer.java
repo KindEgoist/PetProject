@@ -18,7 +18,7 @@ public class ProductInfoConsumer {
     private final ProductInfoService productInfoService;
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
-    @KafkaListener(topics = "product-info-requests", groupId = "product-info-group")
+    @KafkaListener(topics = "product-info-requests", groupId = "store-product-info-group")
     public void consume(ProductInfoRequestEvent event) {
         log.info("Получен запрос из Kafka: productId={}, correlationId={}",
                 event.getProductId(), event.getCorrelationId());

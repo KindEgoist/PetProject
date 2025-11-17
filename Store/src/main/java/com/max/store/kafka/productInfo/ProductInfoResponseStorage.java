@@ -1,6 +1,6 @@
-package com.max.store.kafka;
+package com.max.store.kafka.productInfo;
 
-import com.max.store.event.ProductInfoResponseEvent;
+import com.max.store.event.productInfo.ProductInfoResponseEvent;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;

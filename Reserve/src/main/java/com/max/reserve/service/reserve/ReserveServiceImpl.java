@@ -1,4 +1,4 @@
-package com.max.reserve.service;
+package com.max.reserve.service.reserve;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

@@ -1,4 +1,4 @@
-package com.max.store.event;
+package com.max.store.event.productInfo;
 
 import com.max.store.dto.ProductInfo;
 import lombok.AllArgsConstructor;

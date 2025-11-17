@@ -1,6 +1,7 @@
-package com.max.reserve.model;
+package com.max.reserve.service.product;
 
 import com.max.reserve.exception.ProductNotFoundException;
+import com.max.reserve.model.Product;
 import com.max.reserve.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -10,7 +11,7 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class ProductService {
+public class ProductServiceImpl implements ProductService {
     private final ProductRepository productRepository;
 
     public Product getProduct(Long id) {

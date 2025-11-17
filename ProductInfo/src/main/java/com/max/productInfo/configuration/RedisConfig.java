@@ -1,5 +1,6 @@
 package com.max.productInfo.configuration;
 
+import org.springframework.boot.autoconfigure.cache.CacheProperties;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -15,17 +16,22 @@ import java.time.Duration;
 public class RedisConfig {
 
     @Bean
-    public RedisCacheConfiguration cacheConfiguration() {
+    public RedisCacheConfiguration cacheConfiguration(CacheProperties cacheProperties) {
+        Duration ttl = cacheProperties.getRedis().getTimeToLive() != null
+                ? cacheProperties.getRedis().getTimeToLive()
+                : Duration.ofMinutes(5);
+
         return RedisCacheConfiguration.defaultCacheConfig()
-                .entryTtl(Duration.ofMinutes(5))
+                .entryTtl(ttl)
                 .disableCachingNullValues()
-                .computePrefixWith(cacheName -> "productInfo:" + cacheName + "::")
                 .serializeKeysWith(RedisSerializationContext.SerializationPair
                         .fromSerializer(new StringRedisSerializer()))
                 .serializeValuesWith(RedisSerializationContext.SerializationPair
-                        .fromSerializer(new GenericJackson2JsonRedisSerializer()));
+                        .fromSerializer(new GenericJackson2JsonRedisSerializer()))
+                .computePrefixWith(cacheName -> "productInfo:" + cacheName + "::");
     }
 }
+
 
 
 

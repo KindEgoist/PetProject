@@ -1,13 +1,14 @@
 package com.max.store.service;
 
-import com.max.store.client.PaymentServiceClient;
-import com.max.store.client.ReserveServiceClient;
 import com.max.store.dto.*;
-import com.max.store.event.ProductInfoRequestEvent;
-import com.max.store.event.ProductInfoResponseEvent;
-import com.max.store.kafka.ProductInfoProducer;
-import com.max.store.kafka.ProductInfoResponseStorage;
-import feign.FeignException;
+import com.max.store.event.productInfo.ProductInfoRequestEvent;
+import com.max.store.event.productInfo.ProductInfoResponseEvent;
+import com.max.store.event.reserve.ReserveRequestEvent;
+import com.max.store.event.reserve.ReserveResponseEvent;
+import com.max.store.kafka.productInfo.ProductInfoProducer;
+import com.max.store.kafka.productInfo.ProductInfoResponseStorage;
+import com.max.store.kafka.reserve.ReserveProducer;
+import com.max.store.kafka.reserve.ReserveResponseStorage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
@@ -24,10 +25,10 @@ import java.util.concurrent.TimeoutException;
 @Service
 public class StoreServiceImpl implements StoreService {
 
-    private final ReserveServiceClient reserveServiceClient;
-    private final PaymentServiceClient paymentServiceClient;
     private final ProductInfoProducer productInfoProducer;
     private final ProductInfoResponseStorage productInfoResponseStorage;
+    private final ReserveProducer reserveProducer;
+    private final ReserveResponseStorage reserveResponseStorage;
 
     public ProductResponse getProductById(Long productId) {
         String correlationId = UUID.randomUUID().toString();
@@ -67,80 +68,67 @@ public class StoreServiceImpl implements StoreService {
     @Override
     public PurchaseResponse processPurchase(PurchaseRequest request) {
 
-        MDC.put("correlationId", UUID.randomUUID().toString());
+        String correlationId = UUID.randomUUID().toString();
+        MDC.put("correlationId", correlationId);
         log.info("Начало процесса покупки: accountId={}, productId={}, quantity={}",
                 request.getAccountId(), request.getProductId(), request.getQuantity());
 
-        try {
-            ReserveRequest reserveRequest = new ReserveRequest(request.getProductId(), request.getQuantity());
+        try { //общий
 
+            int totalAmount = 0;
 
-            ReserveResponse reserveResponse;
-            try {
-                reserveResponse = reserveServiceClient.reserveProduct(reserveRequest);
+            try { //для резерва
+                CompletableFuture<ReserveResponseEvent> future = reserveResponseStorage
+                        .createPendingRequest(correlationId);
+                ReserveRequestEvent requestEvent = new ReserveRequestEvent(request.getProductId(),
+                        request.getQuantity(), correlationId);
+                reserveProducer.sendRequest(requestEvent);
 
-                if (reserveResponse == null) {
+                ReserveResponseEvent responseEvent = future.get(5, TimeUnit.SECONDS);
 
-                    log.warn("Сервис резервирования недоступен");
-
-                    return new PurchaseResponse(false, "Сервис резервирования недоступен");
+                if (!responseEvent.isSuccess()) {
+                    log.warn("Резерв не удался: {}", responseEvent.getMessage());
+                    return new PurchaseResponse(false, responseEvent.getMessage());
                 }
+                log.info("Ответ получен: {}", responseEvent.getMessage(), responseEvent.isSuccess(),
+                        responseEvent.getPrice());
+                totalAmount = responseEvent.getPrice();
 
-                if (!reserveResponse.isSuccess()) {
+            } catch (TimeoutException e) {
+                log.error("Таймаут при ожидании ответа от ProductInfo");
+                return new PurchaseResponse(false,"Ответ от Reserve не получен (timeout)");
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                log.error("Ожидание прервано", e);
+                return new PurchaseResponse(false,"Ошибка при ожидании ответа");
+            } catch (ExecutionException e) {
+                log.error("Ошибка при получении ответа", e);
+                return new PurchaseResponse(false,"Ошибка при получении ответа");
+            }
+            try { //для оплаты. Временно
+                totalAmount *= request.getQuantity();
 
-                    log.warn("Не удалось зарезервировать товар: {}", reserveResponse.getMessage());
+                PaymentRequest paymentRequest = new PaymentRequest();
+                paymentRequest.setAccountId(request.getAccountId());
+                paymentRequest.setAmount(totalAmount);
+                paymentRequest.setProductId(request.getProductId());
+                paymentRequest.setQuantity(request.getQuantity());
 
-                    return new PurchaseResponse(false,
-                            "Ошибка резервирования: " + reserveResponse.getMessage());
-                }
+                ActionResponse paymentResponse;
 
-            }catch (FeignException e) {
-                log.error("Ошибка связи с сервисом резервирования. Status: {}, Message: {}",
-                        e.status(), e.contentUTF8());
-                String userMessage = e.status() == 503 ?
-                        "Сервис резервирования временно недоступен" :
-                        "Ошибка при резервировании товара";
-                return new PurchaseResponse(false, userMessage);
+                log.info("Покупка успешно завершена");
+                return new PurchaseResponse(true, "Покупка успешно завершена!");
+            }
+            catch (Exception e) {
+                return new PurchaseResponse(false,"<UNK> <UNK> <UNK>");
             }
 
 
-            int totalAmount = reserveResponse.getPrice() * request.getQuantity();
-
-            PaymentRequest paymentRequest = new PaymentRequest();
-            paymentRequest.setAccountId(request.getAccountId());
-            paymentRequest.setAmount(totalAmount);
-            paymentRequest.setProductId(request.getProductId());
-            paymentRequest.setQuantity(request.getQuantity());
-
-            ActionResponse paymentResponse;
-
-            try {
-                paymentResponse = paymentServiceClient.processPayment(paymentRequest);
-                if (paymentResponse == null || !paymentResponse.isSuccess()) {
-                    reserveServiceClient.cancelReserve(reserveRequest);
-
-                    log.warn("Оплата не удалась: {}",
-                            paymentResponse != null ? paymentResponse.getMessage() : "Нет ответа");
-
-                    return new PurchaseResponse(false, "Оплата не удалась: " +
-                            (paymentResponse != null ? paymentResponse.getMessage() : "Нет ответа"));
-                }
-            }catch (FeignException e) {
-                log.error("Ошибка связи с сервисом оплаты. Status: {}, Message: {}",
-                        e.status(), e.contentUTF8());
-
-                String userMessage = e.status() == 503 ?
-                        "Сервис оплаты временно недоступен" :
-                        "Ошибка при обработке оплаты";
-                return new PurchaseResponse(false, userMessage);
-            }
-
-          log.info("Покупка успешно завершена");
-            return new PurchaseResponse(true, "Покупка успешно завершена!");
         }
         finally {
             MDC.clear();
         }
+
 
     }
 }

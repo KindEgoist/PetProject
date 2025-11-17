@@ -1,4 +1,4 @@
-package com.max.reserve.service;
+package com.max.reserve.service.reserve;
 
 import org.springframework.stereotype.Service;
 
